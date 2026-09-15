@@ -614,7 +614,7 @@ export default function TimelineView({ tasks, onTaskClick }: TimelineViewProps) 
                           const dueDate = parseDate(task.dueDate) || new Date(startDate.getTime() + 86400000 * 3);
                           const finalDue = dueDate >= startDate ? dueDate : new Date(startDate.getTime() + 86400000 * 3);
 
-                          const { timelineStart, timelineEnd, totalDuration } = columnsInfo;
+                          const { timelineStart, totalDuration } = columnsInfo;
 
                           const startMs = startDate.getTime();
                           const endMs = finalDue.getTime();

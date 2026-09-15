@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useWorkspaces } from '../../hooks/use-workspaces';
@@ -6,19 +6,11 @@ import WorkspaceService from '../../services/workspace.service';
 import EmptyState from '../../components/common/empty-state';
 import { Skeleton } from '../../components/common/loading-skeleton';
 import CreateProjectForm from '../../components/project/create-project-form';
-import type { ProjectCardDTO } from '../../types/project';
 import type { WorkspaceResponseDTO } from '../../types/workspace';
-
-interface WorkspaceWithProjects extends WorkspaceResponseDTO {
-  projects: ProjectCardDTO[];
-  loadingProjects: boolean;
-  expanded: boolean;
-}
 
 export default function WorkspacesPage() {
   const navigate = useNavigate();
   const [viewMy, setViewMy] = useState(true);
-  const [workspacesWithProjects, setWorkspacesWithProjects] = useState<WorkspaceWithProjects[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -26,66 +18,6 @@ export default function WorkspacesPage() {
   const [selectedWorkspaceForProject, setSelectedWorkspaceForProject] = useState<WorkspaceResponseDTO | null>(null);
 
   const { workspaces, isLoading, error, refetch, addWorkspace } = useWorkspaces();
-
-  useEffect(() => {
-    if (workspaces.length > 0) {
-      setWorkspacesWithProjects(
-        workspaces.map(ws => ({
-          ...ws,
-          projects: [],
-          loadingProjects: false,
-          expanded: false
-        }))
-      );
-    } else {
-      setWorkspacesWithProjects([]);
-    }
-  }, [workspaces]);
-
-  const toggleWorkspace = (workspaceId: number) => {
-    setWorkspacesWithProjects(prev =>
-      prev.map(ws => {
-        if (ws.id === workspaceId) {
-          const newExpanded = !ws.expanded;
-
-          if (newExpanded && ws.projects.length === 0 && !ws.loadingProjects) {
-            loadProjectsForWorkspace(ws.id);
-          }
-
-          return { ...ws, expanded: newExpanded };
-        }
-        return ws;
-      })
-    );
-  };
-
-  const loadProjectsForWorkspace = async (workspaceId: number) => {
-    setWorkspacesWithProjects(prev =>
-      prev.map(ws =>
-        ws.id === workspaceId ? { ...ws, loadingProjects: true } : ws
-      )
-    );
-
-    try {
-      const response = await WorkspaceService.getProjectsByWorkspace(workspaceId);
-      setWorkspacesWithProjects(prev =>
-        prev.map(ws =>
-          ws.id === workspaceId
-            ? { ...ws, projects: response.data, loadingProjects: false }
-            : ws
-        )
-      );
-    } catch (err) {
-      console.error('Failed to load projects:', err);
-      setWorkspacesWithProjects(prev =>
-        prev.map(ws =>
-          ws.id === workspaceId
-            ? { ...ws, loadingProjects: false }
-            : ws
-        )
-      );
-    }
-  };
 
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) {
@@ -189,7 +121,7 @@ export default function WorkspacesPage() {
       )}
 
       {/* Empty state */}
-      {!isLoading && !error && workspacesWithProjects.length === 0 && (
+      {!isLoading && !error && workspaces.length === 0 && (
         <EmptyState
           title="No workspaces yet"
           description={viewMy

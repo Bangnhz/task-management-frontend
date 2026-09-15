@@ -3,7 +3,6 @@ import type {
   RegisterRequestDTO,
   LoginRequestDTO,
   AuthResponseDTO,
-  UserResponseDTO,
 } from '../types/auth';
 
 const AuthService = {

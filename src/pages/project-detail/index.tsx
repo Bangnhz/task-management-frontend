@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -35,7 +35,7 @@ import {
   DEFAULT_TASK_FILTER_STATE,
   filterTask,
 } from '../../utils/filter-task.util';
-import type { Task, TaskStatus, TaskListDTO, TaskSummaryDTO, Priority } from '../../types/task';
+import type { Task, TaskListDTO, TaskSummaryDTO } from '../../types/task';
 
 type ViewType = 'board' | 'list' | 'calendar' | 'timeline';
 
@@ -94,7 +94,7 @@ export default function ProjectDetailPage() {
       });
   }, [id]);
 
-  const fetchTaskLists = async () => {
+  const fetchTaskLists = useCallback(async () => {
     if (!id) return;
 
     setIsLoading(true);
@@ -124,11 +124,11 @@ export default function ProjectDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchTaskLists();
-  }, [id]);
+  }, [fetchTaskLists]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => filterTask(t, filterState));

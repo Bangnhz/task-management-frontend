@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Navigate, Outlet } from 'react-router-dom';
+import { useParams, Outlet } from 'react-router-dom';
 import TaskService from '../services/task.service';
 
 export const ProjectRouteGuard = () => {

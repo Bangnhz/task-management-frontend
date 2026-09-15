@@ -26,17 +26,13 @@ import type { WorkspaceResponseDTO } from '../../types/workspace';
 const VIEWS = ['Grid', 'List'] as const;
 type View = typeof VIEWS[number];
 
-function getProgress(p: ProjectCardDTO): number {
-  return 0;
-}
-
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const workspaceId = searchParams.get('workspaceId');
 
-  const { projects: myProjects, isLoading: isLoadingMy, error: errorMy, refetch: refetchMy } = useMyProjects();
-  const { workspaces, isLoading: isLoadingWorkspaces } = useWorkspaces();
+  const { projects: myProjects, error: errorMy, refetch: refetchMy } = useMyProjects();
+  const { workspaces } = useWorkspaces();
   const [projects, setProjects] = useState<ProjectCardDTO[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
