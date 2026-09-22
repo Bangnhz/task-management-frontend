@@ -4,7 +4,6 @@ import PriorityBadge from '../../components/common/priority-badge';
 import { TaskRowSkeleton } from '../../components/common/loading-skeleton';
 import EmptyState from '../../components/common/empty-state';
 import { useTasksByUser } from '../../hooks/use-tasks-by-user';
-import { useMyProjects } from '../../hooks/use-my-projects';
 import type { TaskSummaryDTO, Priority } from '../../types/task';
 import { formatShortDate } from '../../utils/format-date';
 
@@ -58,25 +57,12 @@ export default function MyTasksPage() {
   const [activeTab, setActiveTab] = useState<Tab>('All');
   const [sort, setSort] = useState<Sort>('Due date');
   const { tasks, isLoading, error, refetch } = useTasksByUser();
-  const { projects } = useMyProjects(0, 100);
   const list = filterAndSort(tasks, activeTab, sort);
 
   const handleTaskClick = (task: TaskSummaryDTO) => {
-    let targetProjectId = task.projectId || (task as any).project?.id;
-
-    if (!targetProjectId && task.projectTitle && projects.length > 0) {
-      const matched = projects.find(
-        (p) => (p.name || (p as any).title)?.trim().toLowerCase() === task.projectTitle?.trim().toLowerCase()
-      );
-      if (matched) {
-        targetProjectId = matched.id;
-      }
-    }
-
+    const targetProjectId = task.projectId || (task as any).project?.id;
     if (targetProjectId) {
       navigate(`/projects/${targetProjectId}`);
-    } else {
-      navigate('/projects');
     }
   };
 
@@ -185,6 +171,7 @@ function TaskRow({
   task: TaskSummaryDTO;
   onTaskClick: (task: TaskSummaryDTO) => void;
 }) {
+  const targetProjectId = task.projectId || (task as any).project?.id;
   const dueLabel = task.dueDate ? formatShortDate(task.dueDate) : '—';
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
   // Check if task has commentCount (it might be in the data but not in the type)
@@ -193,8 +180,14 @@ function TaskRow({
 
   return (
     <div
-      onClick={() => onTaskClick(task)}
-      className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-3 hover:bg-slate-50 transition-colors group cursor-pointer"
+      onClick={() => {
+        if (targetProjectId) {
+          onTaskClick(task);
+        }
+      }}
+      className={`grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-3 hover:bg-slate-50 transition-colors group ${
+        targetProjectId ? 'cursor-pointer' : ''
+      }`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <input
