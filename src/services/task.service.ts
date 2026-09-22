@@ -1,5 +1,6 @@
 import api from './api';
 import type { Task, TaskSummaryDTO, TaskListDTO, TaskMoveDTO } from '../types/task';
+import { transformTask } from '../utils/task.util';
 
 export interface CreateTaskPayload {
   listId: number;
@@ -77,7 +78,16 @@ const TaskService = {
     }),
 
   /** Lấy task của user đang đăng nhập */
-  getMyTasks: () => api.get<Task[]>('/tasks/my'),
+  getMyTasks: () =>
+    api.get<TaskSummaryDTO[]>('/tasks').then((response) => {
+      const transformedTasks: Task[] = (response.data || []).map((item) =>
+        transformTask(item, item.listTitle || 'To Do')
+      );
+      return {
+        ...response,
+        data: transformedTasks,
+      };
+    }),
 
   /** Lấy chi tiết 1 task */
   getById: (id: string) => api.get<Task>(`/tasks/${id}`),
