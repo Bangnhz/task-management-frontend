@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PriorityBadge from '../../components/common/priority-badge';
 import { TaskRowSkeleton } from '../../components/common/loading-skeleton';
 import EmptyState from '../../components/common/empty-state';
 import { useTasksByUser } from '../../hooks/use-tasks-by-user';
+import { useMyProjects } from '../../hooks/use-my-projects';
 import type { TaskSummaryDTO, Priority } from '../../types/task';
 import { formatShortDate } from '../../utils/format-date';
 
@@ -52,10 +54,31 @@ function filterAndSort(tasks: TaskSummaryDTO[], tab: Tab, sort: Sort): TaskSumma
 }
 
 export default function MyTasksPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('All');
   const [sort, setSort] = useState<Sort>('Due date');
   const { tasks, isLoading, error, refetch } = useTasksByUser();
+  const { projects } = useMyProjects(0, 100);
   const list = filterAndSort(tasks, activeTab, sort);
+
+  const handleTaskClick = (task: TaskSummaryDTO) => {
+    let targetProjectId = task.projectId || (task as any).project?.id;
+
+    if (!targetProjectId && task.projectTitle && projects.length > 0) {
+      const matched = projects.find(
+        (p) => (p.name || (p as any).title)?.trim().toLowerCase() === task.projectTitle?.trim().toLowerCase()
+      );
+      if (matched) {
+        targetProjectId = matched.id;
+      }
+    }
+
+    if (targetProjectId) {
+      navigate(`/projects/${targetProjectId}`);
+    } else {
+      navigate('/projects');
+    }
+  };
 
   const counts = {
     All:      tasks.length,
@@ -145,7 +168,9 @@ export default function MyTasksPage() {
 
         {!isLoading && !error && list.length > 0 && (
           <div className="divide-y divide-slate-100">
-            {list.map((task) => <TaskRow key={task.id} task={task} />)}
+            {list.map((task) => (
+              <TaskRow key={task.id} task={task} onTaskClick={handleTaskClick} />
+            ))}
           </div>
         )}
       </div>
@@ -153,7 +178,13 @@ export default function MyTasksPage() {
   );
 }
 
-function TaskRow({ task }: { task: TaskSummaryDTO }) {
+function TaskRow({
+  task,
+  onTaskClick,
+}: {
+  task: TaskSummaryDTO;
+  onTaskClick: (task: TaskSummaryDTO) => void;
+}) {
   const dueLabel = task.dueDate ? formatShortDate(task.dueDate) : '—';
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
   // Check if task has commentCount (it might be in the data but not in the type)
@@ -161,11 +192,21 @@ function TaskRow({ task }: { task: TaskSummaryDTO }) {
   const commentCount = taskWithAny.commentCount;
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-3 hover:bg-slate-50 transition-colors group">
+    <div
+      onClick={() => onTaskClick(task)}
+      className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-3 hover:bg-slate-50 transition-colors group cursor-pointer"
+    >
       <div className="flex items-center gap-3 min-w-0">
-        <input type="checkbox" className="w-4 h-4 shrink-0 accent-indigo-600 cursor-pointer" aria-label={`Mark as done: ${task.title}`} />
+        <input
+          type="checkbox"
+          onClick={(e) => e.stopPropagation()}
+          className="w-4 h-4 shrink-0 accent-indigo-600 cursor-pointer"
+          aria-label={`Mark as done: ${task.title}`}
+        />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-slate-900 m-0 truncate group-hover:text-indigo-600 transition-colors cursor-pointer">{task.title}</p>
+          <p className="text-sm font-medium text-slate-900 m-0 truncate group-hover:text-indigo-600 transition-colors">
+            {task.title}
+          </p>
           {task.listTitle && <p className="text-xs text-slate-400 m-0 mt-0.5">{task.listTitle}</p>}
         </div>
       </div>
@@ -186,7 +227,9 @@ function TaskRow({ task }: { task: TaskSummaryDTO }) {
         </span>
       </div>
       <div className="w-20 text-center">
-        <span className="text-xs text-slate-400 truncate">{task.projectTitle}</span>
+        <span className="text-xs text-slate-400 truncate group-hover:text-indigo-600 transition-colors font-medium">
+          {task.projectTitle || '—'}
+        </span>
       </div>
     </div>
   );

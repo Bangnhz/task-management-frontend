@@ -40,6 +40,7 @@ export interface Deadline {
 export interface TaskSummaryDTO {
   id: number;
   title: string;
+  projectId?: number;
   priority: string; // 'HIGH', 'MEDIUM', 'LOW', 'URGENT'
   startDate?: string;
   dueDate: string; // LocalDateTime
