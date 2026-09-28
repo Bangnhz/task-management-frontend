@@ -130,6 +130,18 @@ export default function ProjectDetailPage() {
     fetchTaskLists();
   }, [fetchTaskLists]);
 
+  useEffect(() => {
+    const handleTasksUpdated = () => {
+      fetchTaskLists();
+    };
+
+    window.addEventListener('tasks-updated', handleTasksUpdated);
+
+    return () => {
+      window.removeEventListener('tasks-updated', handleTasksUpdated);
+    };
+  }, [fetchTaskLists]);
+
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => filterTask(t, filterState));
   }, [tasks, filterState]);

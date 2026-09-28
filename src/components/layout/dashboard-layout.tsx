@@ -4,6 +4,7 @@ import Sidebar from './sidebar';
 import TopHeader from './top-header';
 import CommandMenu from './command-menu';
 import TaskDetailDrawer from '../task/task-detail-drawer';
+import ChatWidget from '../chat/chat-widget';
 
 export default function DashboardLayout() {
   return (
@@ -17,6 +18,7 @@ export default function DashboardLayout() {
       </div>
       <CommandMenu />
       <TaskDetailDrawer />
+      <ChatWidget />
     </div>
   );
 }
