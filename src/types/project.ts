@@ -8,6 +8,7 @@ export type ProjectVisibility = 'PUBLIC' | 'PRIVATE' | 'WORKSPACE' | string;
  *   private Long totalTasks;
  *   private ProjectVisibility visibility;
  *   private LocalDateTime updatedAt;
+ *   private Long completedTasks;
  */
 export interface ProjectCardDTO {
   id: number;
@@ -15,6 +16,7 @@ export interface ProjectCardDTO {
   totalTasks: number;
   visibility?: ProjectVisibility;
   updatedAt?: string;
+  completedTasks?: number;
 }
 
 /**

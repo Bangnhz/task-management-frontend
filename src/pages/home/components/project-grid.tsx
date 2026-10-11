@@ -6,8 +6,8 @@ import { Skeleton } from '../../../components/common/loading-skeleton';
 import type { ProjectCardDTO } from '../../../types/project';
 
 function getProgress(p: ProjectCardDTO): number {
-  // Since completedTasks is removed, we can't calculate progress
-  return 0;
+  if (!p.totalTasks || p.totalTasks === 0) return 0;
+  return Math.min(100, Math.round(((p.completedTasks ?? 0) / p.totalTasks) * 100));
 }
 
 function getVisibilityBadge(visibility?: string) {
@@ -94,9 +94,11 @@ export default function ProjectGrid() {
                   </div>
                   <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">{progress}%</span>
                 </div>
-                <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                <span className="text-xs text-slate-500 flex items-center gap-1.5">
                   <CheckSquare className="w-3.5 h-3.5 text-slate-400" />
-                  {p.totalTasks ?? 0} tasks
+                  <span>
+                    <strong className="font-semibold text-slate-700">{p.completedTasks ?? 0}</strong>/{p.totalTasks ?? 0} tasks
+                  </span>
                 </span>
               </div>
             );

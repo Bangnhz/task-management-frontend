@@ -237,6 +237,9 @@ function GridView({ projects }: { projects: ProjectCardDTO[] }) {
   return (
     <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-md:grid-cols-1">
       {projects.map((p) => {
+        const progress = p.totalTasks && p.totalTasks > 0
+          ? Math.min(100, Math.round(((p.completedTasks ?? 0) / p.totalTasks) * 100))
+          : 0;
         return (
           <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
             className="bg-white border border-slate-200/60 rounded-2xl p-5 flex flex-col gap-3 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group"
@@ -253,14 +256,16 @@ function GridView({ projects }: { projects: ProjectCardDTO[] }) {
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400"
-                  style={{ width: `0%` }} role="progressbar" aria-valuenow={0} aria-valuemin={0} aria-valuemax={100} />
+                  style={{ width: `${progress}%` }} role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} />
               </div>
-              <span className="text-xs font-semibold text-slate-600 shrink-0">0%</span>
+              <span className="text-xs font-semibold text-slate-600 shrink-0">{progress}%</span>
             </div>
             <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100 mt-1">
               <span className="flex items-center gap-1.5 text-slate-500">
                 <CheckSquare className="w-3.5 h-3.5 text-slate-400" />
-                {p.totalTasks ?? 0} tasks
+                <span>
+                  <strong className="font-semibold text-slate-700">{p.completedTasks ?? 0}</strong>/{p.totalTasks ?? 0} tasks
+                </span>
               </span>
               {p.updatedAt && (
                 <span title={p.updatedAt} className="flex items-center gap-1 text-slate-400">
@@ -300,7 +305,9 @@ function ListView({ projects }: { projects: ProjectCardDTO[] }) {
               </div>
               <span className="text-xs text-slate-500 flex items-center gap-1.5">
                 <CheckSquare className="w-3.5 h-3.5 text-slate-400" />
-                {p.totalTasks ?? 0} tasks
+                <span>
+                  <strong className="font-semibold text-slate-700">{p.completedTasks ?? 0}</strong>/{p.totalTasks ?? 0} tasks
+                </span>
               </span>
               <span className="text-xs text-slate-400 flex items-center gap-1.5">
                 {p.updatedAt ? (
