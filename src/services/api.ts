@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+const BASE_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:8080/api`;
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -13,6 +13,11 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  const match = window.location.pathname.match(/\/projects\/(\d+)/);
+  if (match && match[1] && config.headers) {
+    const projectId = match[1];
+    config.headers['X-Project-Id'] = projectId;
   }
   return config;
 });
@@ -33,7 +38,7 @@ api.interceptors.response.use(
 
     if (status === 401) {
       const isLoginPage = window.location.pathname === '/login' ||
-                          window.location.pathname === '/register';
+        window.location.pathname === '/register';
 
       // Chỉ redirect nếu KHÔNG đang ở trang login/register
       if (!isLoginPage) {

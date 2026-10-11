@@ -19,6 +19,8 @@ export default function ChatWidget() {
   ]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Tự động cuộn xuống cuối khi có tin nhắn mới
   useEffect(() => {
@@ -33,15 +35,25 @@ export default function ChatWidget() {
 
   const handleSend = async (customText?: string) => {
     const textToSend = (customText || input).trim();
-    if (!textToSend || loading) return;
+    const hasFiles = selectedFiles.length > 0;
+    if ((!textToSend && !hasFiles) || loading) return;
 
     const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setMessages(prev => [...prev, { sender: 'user', text: textToSend, time: currentTime }]);
-    setInput('');
+    const userDisplayMsg = hasFiles
+      ? (textToSend ? `${textToSend}\n📎 [${selectedFiles.map(f => f.name).join(', ')}]` : `📎 [${selectedFiles.map(f => f.name).join(', ')}]`)
+      : textToSend;
+
+    setMessages(prev => [...prev, { sender: 'user', text: userDisplayMsg, time: currentTime }]);
     setLoading(true);
 
     try {
-      const response = await ChatService.sendMessage(textToSend);
+      const match = window.location.pathname.match(/\/projects\/(\d+)/);
+      const projectId = match ? match[1] : undefined;
+
+      // Phân nhánh: có file thì gửi kèm file, không có file thì gửi tin nhắn chat thông thường
+      const response = hasFiles
+        ? await ChatService.uploadAndCreateTasks(selectedFiles, textToSend, projectId)
+        : await ChatService.sendMessage(textToSend);
 
       window.dispatchEvent(new Event('tasks-updated'));
 
@@ -53,15 +65,23 @@ export default function ChatWidget() {
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
-    } catch {
+
+      // CHỈ KHI gửi thành công và AI phản hồi thành công mới xoá input và danh sách file cũ:
+      setInput('');
+      setSelectedFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.error || err?.response?.data?.reply || 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
       setMessages(prev => [
         ...prev,
         {
           sender: 'bot',
-          text: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
+          text: errMsg,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
+      // Nếu thất bại: GIỮ NGUYÊN input và selectedFiles để người dùng không phải nhập lại
     } finally {
       setLoading(false);
     }
@@ -149,21 +169,92 @@ export default function ChatWidget() {
             ))}
           </div>
 
-          {/* Ô nhập tin nhắn */}
-          <div className="p-3 bg-white border-t border-slate-100">
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+          {/* Ô nhập tin nhắn & File Upload */}
+          <div className="p-3 bg-white border-t border-slate-100 flex flex-col gap-2">
+            {/* Tag preview danh sách các file đã chọn */}
+            {selectedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto px-1">
+                {selectedFiles.map((file, idx) => (
+                  <span
+                    key={idx}
+                    className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded-md text-[11.5px] text-indigo-700"
+                  >
+                    <span className="truncate max-w-[140px]" title={file.name}>
+                      📎 {file.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="text-indigo-400 hover:text-indigo-700 font-bold cursor-pointer"
+                      title="Xóa file này"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                {selectedFiles.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFiles([]);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="text-[11px] text-slate-400 hover:text-red-500 self-center underline ml-1 cursor-pointer"
+                  >
+                    Xóa tất cả
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+              {/* Input file ẩn hỗ trợ chọn nhiều file */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                multiple
+                accept=".xlsx,.xls,.docx"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    const newFiles = Array.from(e.target.files);
+                    setSelectedFiles(prev => [...prev, ...newFiles]);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }
+                }}
+              />
+
+              {/* Nút bấm chọn file (Icon chiếc kẹp ghim) */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                title="Đính kèm file Excel/Word (hỗ trợ nhiều file)"
+                className="p-1 text-slate-400 hover:text-indigo-600 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Nhập yêu cầu..."
-                className="flex-1 bg-transparent text-[13px] text-slate-900 placeholder-slate-400 outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && !loading && handleSend()}
+                disabled={loading}
+                placeholder={loading ? "Đang gửi yêu cầu..." : (selectedFiles.length > 0 ? `Thêm ghi chú cho ${selectedFiles.length} file...` : "Nhập yêu cầu...")}
+                className="flex-1 bg-transparent text-[13px] text-slate-900 placeholder-slate-400 outline-none px-2 disabled:opacity-60"
               />
+
+              {/* Nút gửi */}
               <button
                 onClick={() => handleSend()}
-                disabled={!input.trim() || loading}
-                className={`ml-1.5 w-7 h-7 rounded-lg flex items-center justify-center transition-all ${input.trim() && !loading
+                disabled={(!input.trim() && selectedFiles.length === 0) || loading}
+                className={`ml-1 w-7 h-7 rounded-lg flex items-center justify-center transition-all ${(input.trim() || selectedFiles.length > 0) && !loading
                   ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   }`}
